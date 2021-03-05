@@ -85,6 +85,9 @@ class IndexPage extends React.Component {
         console.log(response)
         let invoiceURL = response.data
         console.log(invoiceURL)
+        alert(
+          `Invoice URL generated: https://quotedandpay.xiir.com/${invoiceURL}`
+        )
         //this.createPopUpBox(invoiceURL)
       })
       .catch(function (error) {
