@@ -1,5 +1,7 @@
 import React from "react"
 import axios from "axios"
+import Popup from "../components/popup"
+import { CopyToClipboard } from "react-copy-to-clipboard"
 
 class IndexPage extends React.Component {
   constructor(props) {
@@ -20,10 +22,26 @@ class IndexPage extends React.Component {
       OneTimeAmount: 0,
       onetimenote: "",
       vat: 23,
+      showPopup: false,
+      invoiceURL: "",
+      copySuccess: false,
     }
+    this.togglePopup = this.togglePopup.bind(this)
   }
 
-  isChecked = event => {
+  togglePopup = () => {
+    this.setState({
+      showPopup: !this.state.showPopup,
+    })
+  }
+
+  closePopup = () => {
+    this.togglePopup()
+    document.getElementById("subscriptionForm").reset() // Reset form data
+  }
+
+  isChecked = () => {
+    // Set subscription fee according to contract term
     if (document.getElementById("contracttermDaily").checked) {
       this.setState({ amount: 5 })
     } else if (document.getElementById("contracttermWeekly").checked) {
@@ -39,6 +57,40 @@ class IndexPage extends React.Component {
     }
   }
 
+  copyUrl = () => {
+    return (
+      <CopyToClipboard
+        text={this.state.invoiceURL}
+        onCopy={() => this.setState({ copySuccess: true })}
+      >
+        <button type="reset">Copy Invoice URL</button>
+      </CopyToClipboard>
+    )
+  }
+
+  goToInvoice = () => {
+    return (
+      <button type="reset" onClick={() => window.open(this.state.invoiceURL)}>
+        Go To Invoice
+      </button>
+    )
+  }
+
+  createPopupBox = () => {
+    return (
+      <Popup show={this.state.showPopup} hide={this.closePopup}>
+        <div>
+          <p>Form has been successfully submitted</p>
+          {this.copyUrl()}
+          {this.goToInvoice()}
+          {this.state.copySuccess ? (
+            <div style={{ color: "green" }}>Invoice URL copied</div>
+          ) : null}
+        </div>
+      </Popup>
+    )
+  }
+
   handleInputChange = event => {
     const target = event.target
     const value = target.value
@@ -51,12 +103,12 @@ class IndexPage extends React.Component {
 
   handleSubmit = event => {
     event.preventDefault()
-    alert(`title_of_quote: ${this.state.title_of_quote} fullname: ${this.state.fullname} companyname: ${this.state.companyname}
-      companyaddress: ${this.state.companyaddress1} ${this.state.companyaddress2} ${this.state.companyaddress3} ${this.state.companyaddress4}
-      servicedescription: ${this.state.servicedescription} sub_end_date: ${this.state.sub_end_date} contractterm: ${this.state.contractterm}
-      amount: ${this.state.amount} servicenote: ${this.state.servicenote}
-      OneTimeAmount: ${this.state.OneTimeAmount} onetimenote: ${this.state.onetimenote} vat: ${this.state.vat}
-      `)
+    // alert(`title_of_quote: ${this.state.title_of_quote} fullname: ${this.state.fullname} companyname: ${this.state.companyname}
+    //   companyaddress: ${this.state.companyaddress1} ${this.state.companyaddress2} ${this.state.companyaddress3} ${this.state.companyaddress4}
+    //   servicedescription: ${this.state.servicedescription} sub_end_date: ${this.state.sub_end_date} contractterm: ${this.state.contractterm}
+    //   amount: ${this.state.amount} servicenote: ${this.state.servicenote}
+    //   OneTimeAmount: ${this.state.OneTimeAmount} onetimenote: ${this.state.onetimenote} vat: ${this.state.vat}
+    //   `)
 
     let bodyFormData = new FormData()
     bodyFormData.append("title_of_quote", this.state.title_of_quote)
@@ -80,24 +132,24 @@ class IndexPage extends React.Component {
       url: "https://quotedandpay.xiir.com/submit-invoice.php",
       data: bodyFormData,
     })
-      .then(function (response) {
+      .then(response => {
         console.log("Submitted")
         console.log(response)
-        let invoiceURL = response.data
-        console.log(invoiceURL)
-        alert(
-          `Invoice URL generated: https://quotedandpay.xiir.com/${invoiceURL}`
-        )
-        //this.createPopUpBox(invoiceURL)
+        let url = response.data
+        this.setState({
+          invoiceURL: "https://quotedandpay.xiir.com/" + url,
+        })
+        console.log(this.state.invoiceURL)
+        this.togglePopup()
       })
-      .catch(function (error) {
+      .catch(error => {
         console.log(error)
       })
   }
 
   render() {
     return (
-      <form onSubmit={this.handleSubmit}>
+      <form id="subscriptionForm" onSubmit={this.handleSubmit}>
         <input
           id="title_of_quote"
           type="text"
@@ -155,7 +207,7 @@ class IndexPage extends React.Component {
           placeholder="Service Description"
           onChange={this.handleInputChange}
         />
-        <label for="sub_end_date">Subscription End Date:</label>
+        <label htmlFor="sub_end_date">Subscription End Date:</label>
         <input
           id="sub_end_date"
           type="date"
@@ -164,7 +216,6 @@ class IndexPage extends React.Component {
           onKeyDown={e => e.preventDefault()} // Disable keyboard input for date
           required
           onChange={this.handleInputChange}
-          //placeholder="Subscription End Date (YYYY/MM/DD)"
         />
 
         <hr />
@@ -267,7 +318,14 @@ class IndexPage extends React.Component {
           onChange={this.handleInputChange}
         />
 
-        <button type="submit">Submit</button>
+        <button
+          type="submit"
+          onClick={() => this.setState({ copySuccess: false })} // Reset the value for copySuccess (url)
+        >
+          Submit
+        </button>
+
+        {this.state.showPopup ? this.createPopupBox() : null}
       </form>
     )
   }
